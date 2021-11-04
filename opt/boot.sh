@@ -33,6 +33,7 @@ touch /app/sonarqube/logs/es.log
 touch /app/sonarqube/logs/ce.log
 touch /app/sonarqube/logs/web.log
 tail -F /app/sonarqube/logs/ce.log /app/sonarqube/logs/es.log /app/sonarqube/logs/web.log &
+
 wget https://github.com/microveleno/mysonarqubeheroku/blob/main/mule-validation-sonarqube-plugin-1.0.4-mule.jar -O /app/sonarqube/extensions/plugins
 wget https://github.com/mulesoft-catalyst/mule-sonarqube-plugin/blob/master/src/test/resources/rules-4.xml -O /app/sonarqube/extensions/plugins
 
