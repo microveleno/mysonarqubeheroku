@@ -44,8 +44,7 @@ install_sonarqube() {
   local BUILD_DIR=${1}
   local CACHE_DIR=${2}
 
-  SONAR_DIST="sonarqube-${
-  N}"
+  SONAR_DIST="sonarqube-${SONAR_VERSION}"
   SONAR_DIST_ZIP="${SONAR_DIST}.zip"
 
   # Download Sonar
