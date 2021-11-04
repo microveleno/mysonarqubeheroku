@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir>
+
+# fail fast
+set -e
+
+# parse args
+BUILD_DIR=$1
+CACHE_DIR=$2
+
+BP_DIR=`cd $(dirname $0); cd ..; pwd`
+
+SONAR_VERSION="9.1.0.47736"
+ANT_VERSION="1.9.9"
+SONAR_HOME=${BUILD_DIR}/sonarqube
+
+echo ${SONAR_HOME};
+echo ${BUILD_DIR};
+echo ${CACHE_DIR};
+
+if [ ! -d ${CACHE_DIR} ]; then
+    mkdir -p ${CACHE_DIR}
+fi
+
+install_jdk() {
+  local install_dir=${1}
+  local CACHE_DIR=${2}
+
+  JVM_COMMON_BUILDPACK=${JVM_COMMON_BUILDPACK:-https://codon-buildpacks.s3.amazonaws.com/buildpacks/heroku/jvm-common.tgz}
+  JVM_COMMON="jvm-common.tgz"
+  if [ ! -f ${CACHE_DIR}/${JVM_COMMON} ]; then
+    curl --retry 3 --silent --location $JVM_COMMON_BUILDPACK > ${CACHE_DIR}/${JVM_COMMON}
+  fi
+  mkdir -p /tmp/jvm-common
+  tar xzmf ${CACHE_DIR}/${JVM_COMMON} -C /tmp/jvm-common --strip-components=1
+  source /tmp/jvm-common/bin/util
+  source /tmp/jvm-common/bin/java
+  source /tmp/jvm-common/opt/jdbc.sh
+
+  install_java_with_overlay ${install_dir}
+}
+
+install_sonarqube() {
+  local BUILD_DIR=${1}
+  local CACHE_DIR=${2}
+
+  SONAR_DIST="sonarqube-${SONAR_VERSION}"
+  SONAR_DIST_ZIP="${SONAR_DIST}.zip"
+
+  # Download Sonar
+  if [ ! -f ${CACHE_DIR}/${SONAR_DIST_ZIP} ]; then
+    SONAR_URL="https://binaries.sonarsource.com/Distribution/sonarqube/${SONAR_DIST_ZIP}"
+    echo -n "-----> Downloading ${SONAR_URL}....."
+    curl --location ${SONAR_URL} > ${CACHE_DIR}/${SONAR_DIST_ZIP}
+    echo " done"
+  fi
+
+
+  echo -n "-----> Installing ${SONAR_DIST}...."
+
+  cd ${BUILD_DIR}
+  jar xvf ${CACHE_DIR}/${SONAR_DIST_ZIP}
+  mv ${BUILD_DIR}/${SONAR_DIST} ${SONAR_HOME}
+
+  # Copy vendored properties into Sonar
+  cp ${BP_DIR}/etc/sonar.properties ${SONAR_HOME}/conf
+
+  #make wrapper writable
+  chmod +x $SONAR_HOME/bin/linux-x86-64/./wrapper $SONAR_HOME/bin/linux-x86-64/sonar.sh
+
+  # Copy the vendored boot script for launching the WAR
+  cp ${BP_DIR}/opt/boot.sh ${SONAR_HOME}/
+  chmod +x ${SONAR_HOME}/boot.sh
+
+  chmod +x ${SONAR_HOME}/elasticsearch/bin/elasticsearch
+
+  if [ "${PIPESTATUS[*]}" != "0" ]; then
+    echo " !     Failed to install Sonar"
+    exit 1
+  fi
+  echo " done"
+}
+
+install_sonarts_plugin() {
+  local BUILD_DIR=${1}
+  local CACHE_DIR=${2}
+
+  SONARTS_DIST_JAR="sonar-typescript-plugin-1.6.0.2388.jar"
+  SONARTS_URL="https://sonarsource.bintray.com/Distribution/sonar-typescript-plugin/${SONARTS_DIST_JAR}"
+
+  echo -n "-----> Downloading SonarTS....."
+  curl --silent --location ${SONARTS_URL} > ${CACHE_DIR}/${SONARTS_DIST_JAR}
+  echo " done"
+
+  echo -n "-----> Installing SonarTS....."
+  cp ${CACHE_DIR}/${SONARTS_DIST_JAR} ${SONAR_HOME}/extensions/plugins/${SONARTS_DIST_JAR}
+  chmod +rwx ${SONAR_HOME}/extensions/plugins/${SONARTS_DIST_JAR}
+  echo " done"
+}
+
+install_nodejs() {
+  local BUILD_DIR=${1}
+  local CACHE_DIR=${2}
+
+  NODE_DIST_FILE="node-v8.10.0-linux-x64.tar.xz"
+  NODE_DIST_URL="https://nodejs.org/dist/v8.10.0/${NODE_DIST_FILE}"
+
+  if [ ! -f ${CACHE_DIR}/${NODE_DIST_FILE} ]; then
+    echo -n "-----> Downloading NodeJS....."
+    curl --silent --location ${NODE_DIST_URL} > ${CACHE_DIR}/${NODE_DIST_FILE}
+    echo " done"
+  fi
+
+  echo -n "-----> Installing NodeJS....."
+
+  tar xf ${CACHE_DIR}/${NODE_DIST_FILE} -C ${BUILD_DIR}
+
+  ln -s ${BUILD_DIR}/${NODE_DIST_FILE}/bin/node ${BUILD_DIR}/.heroku/bin/node
+  ln -s ${BUILD_DIR}/${NODE_DIST_FILE}/bin/npm ${BUILD_DIR}/.heroku/bin/npm
+  ln -s ${BUILD_DIR}/${NODE_DIST_FILE}/bin/npx ${BUILD_DIR}/.heroku/bin/npx
+
+  echo " done"
+}
+
+
+install_jdk ${BUILD_DIR} ${CACHE_DIR}
+install_nodejs ${BUILD_DIR} ${CACHE_DIR}
+install_sonarqube ${BUILD_DIR} ${CACHE_DIR}
+#install_sonarts_plugin ${BUILD_DIR} ${CACHE_DIR}

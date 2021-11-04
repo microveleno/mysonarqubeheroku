@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# bin/release <build-dir>
+
+BUILD_DIR=$1
+
+cat <<EOF
+---
+
+config_vars:
+  JAVA_OPTS: -Xmx384m -Xss512k -XX:+UseCompressedOops
+addons:
+  heroku-postgresql
+EOF
+
+if [ ! -f $BUILD_DIR/Procfile ]; then
+  cat <<EOF
+default_process_types:
+  web: sh /app/sonarqube/boot.sh
+EOF
+fi
