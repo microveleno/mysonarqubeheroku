@@ -10,7 +10,7 @@ CACHE_DIR=$2
 
 BP_DIR=`cd $(dirname $0); cd ..; pwd`
 
-SONAR_VERSION="sonarqube-8.9.3.48735"
+SONAR_VERSION="8.9.3.48735"
 ANT_VERSION="1.9.9"
 SONAR_HOME=${BUILD_DIR}/sonarqube
 
@@ -44,7 +44,8 @@ install_sonarqube() {
   local BUILD_DIR=${1}
   local CACHE_DIR=${2}
 
-  SONAR_DIST="sonarqube-${SONAR_VERSION}"
+  SONAR_DIST="sonarqube-${
+  N}"
   SONAR_DIST_ZIP="${SONAR_DIST}.zip"
 
   # Download Sonar
