@@ -38,5 +38,6 @@ wget https://github.com/mulesoft-catalyst/mule-sonarqube-plugin/releases/downloa
 wget https://github.com/mulesoft-catalyst/mule-sonarqube-plugin/releases/download/1.0.4/rules-3.xml -O /app/sonarqube/extensions/plugins/rules-3.xml
 wget https://github.com/mulesoft-catalyst/mule-sonarqube-plugin/releases/download/1.0.4/rules-4.xml -O /app/sonarqube/extensions/plugins/rules-4.xml
 
+
 exec /app/sonarqube/bin/linux-x86-64/sonar.sh console
 
